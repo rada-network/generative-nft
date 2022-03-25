@@ -1,1 +1,1 @@
-# generative-nft
+# Generative NFT

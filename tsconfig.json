@@ -1,0 +1,6 @@
+{
+    "references": [
+        { "path": "packages/RADA-assets" },
+        { "path": "packages/RADA-contracts" },
+    ]
+}
