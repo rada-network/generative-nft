@@ -7,7 +7,7 @@
 ....##.. ##::: #########: ##:::: ##: #########:
 ....##::. ##:: ##.... ##: ##:::: ##: ##.... ##:
 ....##:::. ##: ##:::: ##: ########:: ##:::: ##:
-...:::::..::..:::::..::........:::..:::::..::
+...:::::::..::..:::::..::........:::..:::::..::
 Fork from NousDAO
 ***********************************************/
 pragma solidity ^0.8.6;
@@ -52,9 +52,9 @@ contract RadaToken is INounsToken, Ownable, ERC721 {
 
     /* Minting */
     function mint() external override onlyMinter returns (uint256) {
-        /* if (_currentNftId <= 1820 && _currentNftId % 10 == 0) {
-            _mintTo(founder, _currentNftId++);
-        } */
+        if (_currentNftId == 0) {
+            _currentNftId++;
+        }
         return _mintTo(minter, _currentNftId++);
     }
     function _mintTo(address to, uint256 nftId) internal returns (uint256) {

@@ -7,6 +7,8 @@ import {
   RadaToken__factory as RadaTokenFactory,
   RadaSeeder,
   RadaSeeder__factory as RadaSeederFactory,
+  Wbnb,
+  Wbnb__factory as WbnbFactory,
 } from '../typechain';
 import ImageData from '../files/image-data.json';
 import { Block } from '@ethersproject/abstract-provider';
@@ -44,6 +46,12 @@ export const deployRadaDescriptor = async (
   );
 
   return radaDescriptorFactory.deploy();
+};
+
+export const deployWbnb = async (deployer?: SignerWithAddress): Promise<Wbnb> => {
+  const factory = new WbnbFactory(deployer || (await await getSigners()).deployer);
+
+  return factory.deploy();
 };
 
 export const deployRadaSeeder = async (deployer?: SignerWithAddress): Promise<RadaSeeder> => {
