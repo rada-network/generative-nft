@@ -57,4 +57,15 @@ npx hardhat run scripts/RadaToken/1_deploy.js --network testnet
 npx hardhat run scripts/RadaDescriptor/verify.js --network testnet
 npx hardhat run scripts/RadaSeeder/verify.js --network testnet
 npx hardhat run scripts/RadaToken/verify.js --network testnet
+npx hardhat run scripts/RadaAuctionHouse/verify.js --network testnet
+
+```
+
+## DEMO
+
+```sh
+
+DEBUG SET duration 5min
+
+
 ```

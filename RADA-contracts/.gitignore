@@ -12,9 +12,6 @@ typechain/factories/*
 !typechain/factories/RadaSeeder__factory.ts
 .openzeppelin
 
-# Script output
-logs
-
 # Coverage result files
 coverage/
 coverage.json

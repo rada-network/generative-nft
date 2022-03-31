@@ -23,12 +23,17 @@ pragma solidity ^0.8.6;
 import { PausableUpgradeable } from '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import { ReentrancyGuardUpgradeable } from '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol';
 import { OwnableUpgradeable } from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { INounsAuctionHouse } from './interfaces/INounsAuctionHouse.sol';
 import { INounsToken } from './interfaces/INounsToken.sol';
 import { IWBNB } from './interfaces/IWBNB.sol';
 
-contract RadaAuctionHouse is INounsAuctionHouse, PausableUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+contract RadaAuctionHouse is
+    INounsAuctionHouse, Initializable,
+    UUPSUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     // The Nouns ERC721 token contract
     INounsToken public nouns;
 
@@ -53,16 +58,14 @@ contract RadaAuctionHouse is INounsAuctionHouse, PausableUpgradeable, Reentrancy
     /**
      * @notice Initialize the auction house and base contracts,
      * populate configuration values, and pause the contract.
-     * @dev This function can only be called once.
      */
-    function initialize(
-        INounsToken _nouns,
+    function initialize(INounsToken _nouns,
         address _wbnb,
         uint256 _timeBuffer,
         uint256 _reservePrice,
         uint8 _minBidIncrementPercentage,
-        uint256 _duration
-    ) external initializer {
+        uint256 _duration) public initializer {
+
         __Pausable_init();
         __ReentrancyGuard_init();
         __Ownable_init();
@@ -75,7 +78,13 @@ contract RadaAuctionHouse is INounsAuctionHouse, PausableUpgradeable, Reentrancy
         reservePrice = _reservePrice;
         minBidIncrementPercentage = _minBidIncrementPercentage;
         duration = _duration;
+
     }
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * @notice Settle the current auction, mint a new Noun, and put it up for auction.
@@ -253,5 +262,13 @@ contract RadaAuctionHouse is INounsAuctionHouse, PausableUpgradeable, Reentrancy
     function _safeTransferBNB(address to, uint256 value) internal returns (bool) {
         (bool success, ) = to.call{ value: value, gas: 30_000 }(new bytes(0));
         return success;
+    }
+
+    /**
+     * @notice Set the duration.
+     * @dev Only callable by the owner.
+     */
+    function setDuration(uint256 _duration) external onlyOwner {
+        duration = _duration;
     }
 }

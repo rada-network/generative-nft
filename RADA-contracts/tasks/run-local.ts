@@ -16,15 +16,11 @@ task(
     radaDescriptor: contracts.RadaDescriptor.instance.address,
   });
 
-  /* await contracts.RadaAuctionHouse.instance
-    .attach(contracts.RadaAuctionHouseProxy.instance.address)
+  await contracts.RadaAuctionHouse.instance
+    // .attach(contracts.RadaAuctionHouseProxy.instance.address)
     .unpause({
       gasLimit: 1_000_000,
     });
-
-  await run('create-proposal', {
-    nounsDaoProxy: contracts.RadaDAOProxy.instance.address,
-  }); */
 
   const { chainId } = await ethers.provider.getNetwork();
 

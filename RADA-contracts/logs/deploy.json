@@ -1,0 +1,10 @@
+{
+  "contractAddresses": {
+    "NFTDescriptor": "0xCa95d3b10408eda242ED52aF8F695fd59d3E5A51",
+    "RadaDescriptor": "0x8b638Dd12a438fBC7a2ea01116dF7c20CD41C8b0",
+    "RadaSeeder": "0xD6a9333c8eaE4c949e091d0dfE69beBE12C9C983",
+    "RadaToken": "0xF9C65fE88036276825740A796846fE6120c0f973",
+    "RadaAuctionHouse": "0x0443D9B41E2da87b6bC1e7454Ae7F391Dc395A2C"
+  },
+  "gitHub": {}
+}

@@ -24,8 +24,8 @@ import { INounsToken } from "./interfaces/INounsToken.sol";
 contract RadaToken is INounsToken, Ownable, ERC721 {
 
     INounsDescriptor public descriptor;
-    address public minter;
-    uint256 private _currentNftId;
+    uint256 public currentNftId;
+    mapping(address => bool) minters;
 
     INounsSeeder public seeder;
 
@@ -37,7 +37,8 @@ contract RadaToken is INounsToken, Ownable, ERC721 {
         INounsSeeder _seeder
     ) ERC721("wolfNFT", "WOLF")
     {
-        minter = _minter;
+        // Default grant the admin role to a specified account
+        minters[_minter] = true;
         descriptor = _descriptor;
         seeder = _seeder;
     }
@@ -46,16 +47,14 @@ contract RadaToken is INounsToken, Ownable, ERC721 {
      * @notice Require that the sender is the minter.
      */
     modifier onlyMinter() {
-        require(msg.sender == minter, 'Sender is not the minter');
+        require(minters[msg.sender], 'Sender is not the minter');
         _;
     }
 
     /* Minting */
     function mint() external override onlyMinter returns (uint256) {
-        if (_currentNftId == 0) {
-            _currentNftId++;
-        }
-        return _mintTo(minter, _currentNftId++);
+        currentNftId = currentNftId + 1;
+        return _mintTo(msg.sender, currentNftId);
     }
     function _mintTo(address to, uint256 nftId) internal returns (uint256) {
         INounsSeeder.Seed memory seed = seeds[nftId] = seeder.generateSeed(nftId, descriptor);
@@ -75,16 +74,16 @@ contract RadaToken is INounsToken, Ownable, ERC721 {
         require(_exists(tokenId), 'NounsToken: URI query for nonexistent token');
         return descriptor.dataURI(tokenId, seeds[tokenId]);
     }
-        /**
+    /**
      * @notice Set the token minter.
      * @dev Only callable by the owner when not locked.
      */
-    function setMinter(address _minter) external override onlyOwner {
-        minter = _minter;
+    function setMinter(address _minter, bool _allow) external override onlyOwner {
+        minters[_minter] = _allow;
 
-        emit MinterUpdated(_minter);
+        emit MinterUpdated(_minter, _allow);
     }
-        /**
+    /**
      * @notice Set the token URI descriptor.
      * @dev Only callable by the owner when not locked.
      */

@@ -26,6 +26,7 @@ task('deploy-ci', 'Deploy contracts (automated by CI)')
           RadaDescriptor: contracts.RadaDescriptor.address,
           RadaSeeder: contracts.RadaSeeder.address,
           RadaToken: contracts.RadaToken.address,
+          RadaAuctionHouse: contracts.RadaAuctionHouse.address,
         },
         gitHub: {
           // Get the commit sha when running in CI

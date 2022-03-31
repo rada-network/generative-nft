@@ -30,15 +30,15 @@ describe('RadaAuctionHouse', () => {
   const DURATION = 60 * 60 * 24;
 
   async function deploy(deployer?: SignerWithAddress) {
-    const auctionHouseFactory = await ethers.getContractFactory('RadaAuctionHouse', deployer);
-    return upgrades.deployProxy(auctionHouseFactory, [
+    const contractFactory = await ethers.getContractFactory('RadaAuctionHouse', deployer);
+    return upgrades.deployProxy(contractFactory, [
       nounsToken.address,
       bnb.address,
       TIME_BUFFER,
       RESERVE_PRICE,
       MIN_INCREMENT_BID_PERCENTAGE,
       DURATION,
-    ]) as Promise<RadaAuctionHouse>;
+    ], { kind: 'uups' }) as Promise<RadaAuctionHouse>;
   }
 
   before(async () => {
@@ -86,8 +86,8 @@ describe('RadaAuctionHouse', () => {
   it('should revert if a user creates a bid for an inactive auction', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
-    const tx = radaAuctionHouse.connect(bidderA).createBid(nounId.add(1), {
+    const { nftId } = await radaAuctionHouse.auction();
+    const tx = radaAuctionHouse.connect(bidderA).createBid(nftId.add(1), {
       value: RESERVE_PRICE,
     });
 
@@ -99,8 +99,8 @@ describe('RadaAuctionHouse', () => {
 
     await ethers.provider.send('evm_increaseTime', [60 * 60 * 25]); // Add 25 hours
 
-    const { nounId } = await radaAuctionHouse.auction();
-    const tx = radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    const { nftId } = await radaAuctionHouse.auction();
+    const tx = radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
 
@@ -110,8 +110,8 @@ describe('RadaAuctionHouse', () => {
   it('should revert if a user creates a bid with an amount below the reserve price', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
-    const tx = radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    const { nftId } = await radaAuctionHouse.auction();
+    const tx = radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE - 1,
     });
 
@@ -121,11 +121,11 @@ describe('RadaAuctionHouse', () => {
   it('should revert if a user creates a bid less than the min bid increment percentage', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
-    await radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    const { nftId } = await radaAuctionHouse.auction();
+    await radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE * 50,
     });
-    const tx = radaAuctionHouse.connect(bidderB).createBid(nounId, {
+    const tx = radaAuctionHouse.connect(bidderB).createBid(nftId, {
       value: RESERVE_PRICE * 51,
     });
 
@@ -137,13 +137,13 @@ describe('RadaAuctionHouse', () => {
   it('should refund the previous bidder when the following user creates a bid', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
-    await radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    const { nftId } = await radaAuctionHouse.auction();
+    await radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
 
     const bidderAPostBidBalance = await bidderA.getBalance();
-    await radaAuctionHouse.connect(bidderB).createBid(nounId, {
+    await radaAuctionHouse.connect(bidderB).createBid(nftId, {
       value: RESERVE_PRICE * 2,
     });
     const bidderAPostRefundBalance = await bidderA.getBalance();
@@ -154,19 +154,19 @@ describe('RadaAuctionHouse', () => {
   it('should cap the maximum bid griefing cost at 30K gas + the cost to wrap and transfer WETH', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
+    const { nftId } = await radaAuctionHouse.auction();
 
     const maliciousBidderFactory = new MaliciousBidderFactory(bidderA);
     const maliciousBidder = await maliciousBidderFactory.deploy();
 
     const maliciousBid = await maliciousBidder
       .connect(bidderA)
-      .bid(radaAuctionHouse.address, nounId, {
+      .bid(radaAuctionHouse.address, nftId, {
         value: RESERVE_PRICE,
       });
     await maliciousBid.wait();
 
-    const tx = await radaAuctionHouse.connect(bidderB).createBid(nounId, {
+    const tx = await radaAuctionHouse.connect(bidderB).createBid(nftId, {
       value: RESERVE_PRICE * 2,
       gasLimit: 1_000_000,
     });
@@ -179,38 +179,38 @@ describe('RadaAuctionHouse', () => {
   it('should emit an `AuctionBid` event on a successful bid', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
-    const tx = radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    const { nftId } = await radaAuctionHouse.auction();
+    const tx = radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
 
     await expect(tx)
       .to.emit(radaAuctionHouse, 'AuctionBid')
-      .withArgs(nounId, bidderA.address, RESERVE_PRICE, false);
+      .withArgs(nftId, bidderA.address, RESERVE_PRICE, false);
   });
 
   it('should emit an `AuctionExtended` event if the auction end time is within the time buffer', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId, endTime } = await radaAuctionHouse.auction();
+    const { nftId, endTime } = await radaAuctionHouse.auction();
 
     await ethers.provider.send('evm_setNextBlockTimestamp', [endTime.sub(60 * 5).toNumber()]); // Subtract 5 mins from current end time
 
-    const tx = radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    const tx = radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
 
     await expect(tx)
       .to.emit(radaAuctionHouse, 'AuctionExtended')
-      .withArgs(nounId, endTime.add(60 * 10));
+      .withArgs(nftId, endTime.add(60 * 10));
   });
 
   it('should revert if auction settlement is attempted while the auction is still active', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
+    const { nftId } = await radaAuctionHouse.auction();
 
-    await radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    await radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
     const tx = radaAuctionHouse.connect(bidderA).settleCurrentAndCreateNewAuction();
@@ -221,9 +221,9 @@ describe('RadaAuctionHouse', () => {
   it('should emit `AuctionSettled` and `AuctionCreated` events if all conditions are met', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
+    const { nftId } = await radaAuctionHouse.auction();
 
-    await radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    await radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
 
@@ -236,11 +236,11 @@ describe('RadaAuctionHouse', () => {
     const settledEvent = receipt.events?.find(e => e.event === 'AuctionSettled');
     const createdEvent = receipt.events?.find(e => e.event === 'AuctionCreated');
 
-    expect(settledEvent?.args?.nounId).to.equal(nounId);
+    expect(settledEvent?.args?.nftId).to.equal(nftId);
     expect(settledEvent?.args?.winner).to.equal(bidderA.address);
     expect(settledEvent?.args?.amount).to.equal(RESERVE_PRICE);
 
-    expect(createdEvent?.args?.nounId).to.equal(nounId.add(1));
+    expect(createdEvent?.args?.nftId).to.equal(nftId.add(1));
     expect(createdEvent?.args?.startTime).to.equal(timestamp);
     expect(createdEvent?.args?.endTime).to.equal(timestamp + DURATION);
   });
@@ -252,17 +252,17 @@ describe('RadaAuctionHouse', () => {
 
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
+    const { nftId } = await radaAuctionHouse.auction();
 
-    expect(nounId).to.equal(1);
+    expect(nftId).to.equal(1);
   });
 
   it('should create a new auction if the auction house is paused and unpaused after an auction is settled', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
+    const { nftId } = await radaAuctionHouse.auction();
 
-    await radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    await radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
 
@@ -274,7 +274,7 @@ describe('RadaAuctionHouse', () => {
 
     await expect(settleTx)
       .to.emit(radaAuctionHouse, 'AuctionSettled')
-      .withArgs(nounId, bidderA.address, RESERVE_PRICE);
+      .withArgs(nftId, bidderA.address, RESERVE_PRICE);
 
     const unpauseTx = await radaAuctionHouse.unpause();
     const receipt = await unpauseTx.wait();
@@ -282,7 +282,7 @@ describe('RadaAuctionHouse', () => {
 
     const createdEvent = receipt.events?.find(e => e.event === 'AuctionCreated');
 
-    expect(createdEvent?.args?.nounId).to.equal(nounId.add(1));
+    expect(createdEvent?.args?.nftId).to.equal(nftId.add(1));
     expect(createdEvent?.args?.startTime).to.equal(timestamp);
     expect(createdEvent?.args?.endTime).to.equal(timestamp + DURATION);
   });
@@ -290,9 +290,9 @@ describe('RadaAuctionHouse', () => {
   it('should settle the current auction and pause the contract if the minter is updated while the auction house is unpaused', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
+    const { nftId } = await radaAuctionHouse.auction();
 
-    await radaAuctionHouse.connect(bidderA).createBid(nounId, {
+    await radaAuctionHouse.connect(bidderA).createBid(nftId, {
       value: RESERVE_PRICE,
     });
 
@@ -304,7 +304,7 @@ describe('RadaAuctionHouse', () => {
 
     await expect(settleTx)
       .to.emit(radaAuctionHouse, 'AuctionSettled')
-      .withArgs(nounId, bidderA.address, RESERVE_PRICE);
+      .withArgs(nftId, bidderA.address, RESERVE_PRICE);
 
     const paused = await radaAuctionHouse.paused();
 
@@ -314,7 +314,7 @@ describe('RadaAuctionHouse', () => {
   it('should burn a Noun on auction settlement if no bids are received', async () => {
     await (await radaAuctionHouse.unpause()).wait();
 
-    const { nounId } = await radaAuctionHouse.auction();
+    const { nftId } = await radaAuctionHouse.auction();
 
     await ethers.provider.send('evm_increaseTime', [60 * 60 * 25]); // Add 25 hours
 
@@ -322,6 +322,6 @@ describe('RadaAuctionHouse', () => {
 
     await expect(tx)
       .to.emit(radaAuctionHouse, 'AuctionSettled')
-      .withArgs(nounId, '0x0000000000000000000000000000000000000000', 0);
+      .withArgs(nftId, '0x0000000000000000000000000000000000000000', 0);
   });
 });

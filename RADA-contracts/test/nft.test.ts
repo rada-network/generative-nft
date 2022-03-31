@@ -40,9 +40,9 @@ describe('RadaToken', () => {
 
     let [, nounCreated] = receipt.events || [];
 
-    expect(await nftToken.ownerOf(0)).to.eq(deployer.address);
+    expect(await nftToken.ownerOf(1)).to.eq(deployer.address);
     expect(nounCreated?.event).to.eq('NftCreated');
-    expect(nounCreated?.args?.tokenId).to.eq(0);
+    expect(nounCreated?.args?.tokenId).to.eq(1);
     expect(nounCreated?.args?.seed.length).to.equal(5);
 
     nounCreated?.args?.seed.forEach((item: EthersBN | number) => {
@@ -56,10 +56,10 @@ describe('RadaToken', () => {
 
     await (await nftToken.mint()).wait();
 
-    await nftToken.connect(deployer)['safeTransferFrom(address,address,uint256)'](deployer.address,otherUser.address,0);
+    await nftToken.connect(deployer)['safeTransferFrom(address,address,uint256)'](deployer.address,otherUser.address,1);
     //.safeTransferFrom(deployer.address,otherUser.address,0);
 
-    expect(await nftToken.ownerOf(0)).to.eq(otherUser.address);
+    expect(await nftToken.ownerOf(1)).to.eq(otherUser.address);
 
   });
 
@@ -74,8 +74,8 @@ describe('RadaToken', () => {
   it('should allow minter to burn a noun', async () => {
     await (await nftToken.mint()).wait();
 
-    const tx = nftToken.burn(0);
-    await expect(tx).to.emit(nftToken, 'NftBurned').withArgs(0);
+    const tx = nftToken.burn(1);
+    await expect(tx).to.emit(nftToken, 'NftBurned').withArgs(1);
   });
 
   it('should revert on non-minter mint', async () => {
